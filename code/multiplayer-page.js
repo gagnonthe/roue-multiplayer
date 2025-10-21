@@ -441,11 +441,23 @@ function spinWheel(names) {
 
 // === Écran gagnant ===
 function showWinnerScreen(winnerName) {
+  // ID Google Drive fourni par l'utilisateur
+  const DRIVE_ID = '19NBtyvqr0yCtXFUS6oQCRlDu9eWX_Cfb';
+  const EMBED_URL = `https://drive.google.com/file/d/${DRIVE_ID}/preview`;
+
   document.getElementById('wheelContainer').innerHTML = `
     <div class="text-center winner-screen">
-      <video autoplay muted playsinline class="winner-video">
-        <source src="doigt.mov" type="video/mp4">
-      </video>
+      <div class="winner-media">
+        <iframe
+          class="winner-iframe"
+          src="${EMBED_URL}"
+          width="640"
+          height="480"
+          allow="autoplay"
+          loading="eager"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
       <div class="winner-content">
         <h2 class="text-7xl font-black text-white mb-4 animate-bounce">TU AS ÉTÉ CHOISI !</h2>
         <p class="text-4xl text-white/90 mb-8 font-bold">${escapeHtml(winnerName)}</p>
