@@ -280,8 +280,8 @@ document.getElementById('joinSessionBtn')?.addEventListener('click', () => {
     alert('Entre ton prénom !');
     return;
   }
-  if (!code || code.length !== 6) {
-    alert('Entre un code à 6 chiffres !');
+  if (!code || code.length !== 4) {
+    alert('Entre un code à 4 chiffres !');
     return;
   }
   
@@ -565,3 +565,62 @@ updateThemeIcon();
 
 // === Connexion au chargement ===
 connectToServer();
+
+// === Découverte: sessions actives ===
+function requestActiveSessions() {
+  try { socket?.emit('get_active_sessions'); } catch (e) {}
+}
+
+// placeholder removed; rendering is handled inline in the event listener below
+
+socket?.on?.('active_sessions', (payload) => {
+  const sessions = payload?.sessions || [];
+  const listEl = document.getElementById('activeSessionsList');
+  const emptyEl = document.getElementById('noActiveSessions');
+  if (!listEl || !emptyEl) return;
+
+  if (!sessions.length) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = sessions.map(s => {
+    const count = s.participants_count || 0;
+    const spinning = s.spinning ? '<span class="ml-2 text-yellow-500">(en cours)</span>' : '';
+    const objective = s.objective ? `<div class=\"text-xs text-gray-500 mt-1 truncate\">🎯 ${escapeHtml(s.objective)}</div>` : '';
+    return `
+      <div class=\"border rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950\">
+        <div class=\"flex items-center justify-between\">
+          <div>
+            <div class=\"font-semibold\">👑 ${escapeHtml(s.host_name || 'Host')}${spinning}</div>
+            ${objective}
+            <div class=\"text-xs text-gray-500 mt-1\">👥 ${count} joueur(s)</div>
+          </div>
+          <button data-code=\"${s.code}\" class=\"joinWithoutCodeBtn px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold\">Rejoindre</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attacher les actions rejoindre
+  listEl.querySelectorAll('.joinWithoutCodeBtn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const code = e.currentTarget.getAttribute('data-code');
+      // tenter d'utiliser un nom existant, sinon demander
+      let name = playerName || document.getElementById('playerNameInput')?.value?.trim();
+      if (!name) {
+        name = prompt('Entre ton prénom pour rejoindre:') || '';
+        name = name.trim();
+      }
+      if (!name) return;
+      playerName = name;
+      socket.emit('join_session', { code, participant_name: name });
+    });
+  });
+});
+
+document.getElementById('refreshSessionsBtn')?.addEventListener('click', requestActiveSessions);
+
+// Demander la liste au chargement (petit délai après connexion)
+setTimeout(requestActiveSessions, 800);

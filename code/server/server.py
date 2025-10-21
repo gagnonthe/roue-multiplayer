@@ -25,9 +25,9 @@ sessions = {}
 # Format: { 'CODE123': { 'host': 'socket_id', 'objective': '', 'participants': [{'id': 'sid', 'name': 'Alice'}], 'spinning': False } }
 
 def generate_code():
-    """Génère un code de session unique à 6 chiffres"""
+    """Génère un code de session unique à 4 chiffres"""
     while True:
-        code = ''.join(random.choices(string.digits, k=6))
+        code = ''.join(random.choices(string.digits, k=4))
         if code not in sessions:
             return code
 
@@ -59,18 +59,23 @@ def handle_disconnect():
     print(f'Client déconnecté: {sid}')
     
     # Retirer le participant de toutes les sessions
+    changed = False
     for code, session in list(sessions.items()):
         # Si c'est le host qui se déconnecte, supprimer la session
         if session['host'] == sid:
             socketio.emit('session_closed', {'code': code}, room=code)
             del sessions[code]
             print(f'Session {code} fermée (host déconnecté)')
+            changed = True
         else:
             # Retirer le participant
             session['participants'] = [p for p in session['participants'] if p['id'] != sid]
             socketio.emit('participant_left', {
                 'participants': session['participants']
             }, room=code)
+            changed = True
+    if changed:
+        broadcast_active_sessions()
 
 @socketio.on('create_session')
 def handle_create_session(data):
@@ -84,7 +89,8 @@ def handle_create_session(data):
         'objective': '',
         'participants': [{'id': request.sid, 'name': host_name, 'is_host': True}],
         'spinning': False,
-        'result': None
+        'result': None,
+        'created_at': datetime.utcnow().isoformat() + 'Z'
     }
     
     join_room(code)
@@ -95,6 +101,7 @@ def handle_create_session(data):
     })
     
     print(f'Session créée: {code} par {host_name}')
+    broadcast_active_sessions()
 
 @socketio.on('join_session')
 def handle_join_session(data):
@@ -129,6 +136,7 @@ def handle_join_session(data):
     }, room=code)
     
     print(f'{name} a rejoint la session {code}')
+    broadcast_active_sessions()
 
 @socketio.on('update_objective')
 def handle_update_objective(data):
@@ -151,6 +159,7 @@ def handle_update_objective(data):
     socketio.emit('objective_updated', {
         'objective': objective
     }, room=code)
+    broadcast_active_sessions()
 
 @socketio.on('spin_wheel')
 def handle_spin_wheel(data):
@@ -206,6 +215,59 @@ def handle_wheel_result(data):
         }, room=participant['id'])
     
     print(f'Gagnant de la session {code}: {winner_name}')
+    broadcast_active_sessions()
+
+@socketio.on('leave_session')
+def handle_leave_session(data):
+    """Quitter la session explicitement"""
+    code = data.get('code')
+    if not code or code not in sessions:
+        return
+    session = sessions[code]
+    # Si le host quitte, fermer la session
+    if request.sid == session['host']:
+        socketio.emit('session_closed', {'code': code}, room=code)
+        del sessions[code]
+        print(f'Session {code} fermée (host a quitté)')
+    else:
+        session['participants'] = [p for p in session['participants'] if p['id'] != request.sid]
+        socketio.emit('participant_left', {
+            'participants': session['participants']
+        }, room=code)
+        print(f'Un participant a quitté la session {code}')
+    broadcast_active_sessions()
+
+def sessions_summary():
+    """Retourne un résumé des sessions actives pour l'affichage public"""
+    result = []
+    for code, s in sessions.items():
+        result.append({
+            'code': code,
+            'host_name': s.get('host_name') or 'Host',
+            'objective': s.get('objective') or '',
+            'participants_count': len(s.get('participants') or []),
+            'spinning': s.get('spinning', False),
+            'created_at': s.get('created_at')
+        })
+    # Trier par date de création décroissante si dispo
+    try:
+        result.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+    except Exception:
+        pass
+    return result
+
+def broadcast_active_sessions():
+    """Diffuse à tous la liste des sessions actives"""
+    socketio.emit('active_sessions', {
+        'sessions': sessions_summary()
+    })
+
+@socketio.on('get_active_sessions')
+def handle_get_active_sessions():
+    """Un client demande la liste des sessions actives"""
+    emit('active_sessions', {
+        'sessions': sessions_summary()
+    })
 
 if __name__ == '__main__':
     # Mode local: utiliser éventuellement SSL auto-signé si présent OU si USE_SSL=true
