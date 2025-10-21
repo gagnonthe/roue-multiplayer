@@ -173,7 +173,10 @@ def handle_spin_wheel(data):
     session['spinning'] = True
     
     # Notifier tous que la roue commence à tourner
-    socketio.emit('wheel_spinning', {}, room=code)
+    socketio.emit('wheel_spinning', {
+        'participants': session['participants'],
+        'objective': session['objective']
+    }, room=code)
     
     print(f'Roue lancée dans la session {code}')
 
