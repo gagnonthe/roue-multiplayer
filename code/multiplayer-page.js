@@ -1,9 +1,8 @@
 // === Configuration ===
-// URL du serveur par défaut (à remplacer par ton URL Replit)
+// URL du serveur par défaut
 function getDefaultServerUrl() {
-  // Par défaut, utilise localhost pour dev local
-  // Sur Replit, remplace par l'URL publique ex: https://ton-repl.replit.app
-  return 'http://localhost:5000';
+  // URL Render déployée
+  return 'https://roue-server-6z57.onrender.com';
 }
 
 let serverUrl = document.getElementById('serverUrlInput')?.value || getDefaultServerUrl();
