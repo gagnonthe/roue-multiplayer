@@ -118,17 +118,11 @@ function connectToServer() {
 
   socket.on('wheel_result', (data) => {
     console.log('🎯 Résultat:', data);
-    setTimeout(() => {
-      // Afficher une animation pour tout le monde, avec un texte adapté
-      if (data.is_winner) {
-        showWinnerScreen(data.winner);
-      } else {
-        showResultScreen(data.winner);
-      }
-      // Réactiver le bouton de lancement côté host
-      const launchBtn = document.getElementById('launchWheelBtn');
-      if (launchBtn) launchBtn.disabled = false;
-    }, 5000);
+    // Afficher immédiatement le nom après réception du résultat
+    showFinalNameOverlay(data.winner);
+    // Réactiver le bouton de lancement côté host
+    const launchBtn = document.getElementById('launchWheelBtn');
+    if (launchBtn) launchBtn.disabled = false;
   });
 
   socket.on('error', (data) => {
@@ -373,6 +367,7 @@ function spinWheel(names) {
   // Destination aléatoire
   const n = names.length;
   const targetIndex = Math.floor(Math.random() * n);
+  const winnerName = names[targetIndex] || '';
   const slice = (Math.PI * 2) / n;
   const targetCenter = targetIndex * slice + slice / 2;
   let finalAngle = (-Math.PI / 2) - targetCenter;
@@ -450,10 +445,43 @@ function spinWheel(names) {
     } else {
       // Animation terminée
       console.log('Animation terminée');
+      // Après 3s, le host envoie le résultat pour tout le monde
+      if (isHost && currentSessionCode) {
+        setTimeout(() => {
+          try {
+            socket.emit('wheel_result', { code: currentSessionCode, winner: winnerName });
+          } catch (e) { console.error(e); }
+        }, 3000);
+      }
     }
   }
   
   requestAnimationFrame(tick);
+}
+
+// === Affichage final du nom (la roue disparaît) ===
+function showFinalNameOverlay(winnerName) {
+  const wheelContainer = document.getElementById('wheelContainer');
+  if (!wheelContainer) return;
+  wheelContainer.classList.remove('hidden');
+  wheelContainer.innerHTML = `
+    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-blue-900">
+      <div class="text-center p-6">
+        <div class="text-8xl mb-6">🎉</div>
+        <h2 class="text-5xl font-extrabold text-white mb-2">Le gagnant est</h2>
+        <p class="text-6xl font-black text-yellow-300 mb-8">${escapeHtml(winnerName)}</p>
+        <div class="flex items-center justify-center gap-3">
+          <button id="replayBtnFinal" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform shadow-2xl">
+            Rejouer
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('replayBtnFinal')?.addEventListener('click', () => {
+    resetAfterSpin();
+  });
 }
 
 // === Écran gagnant ===
