@@ -442,13 +442,18 @@ function spinWheel(names) {
 // === Écran gagnant ===
 function showWinnerScreen(winnerName) {
   document.getElementById('wheelContainer').innerHTML = `
-    <div class="text-center animate-bounce">
-      <div class="text-9xl mb-8">🎉</div>
-      <h2 class="text-7xl font-black text-white mb-4">C'EST TOI !</h2>
-      <p class="text-3xl text-white/90 mb-8">${escapeHtml(winnerName)}</p>
-      <button onclick="location.reload()" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform">
-        Rejouer
-      </button>
+    <div class="text-center winner-screen">
+      <video autoplay muted playsinline class="winner-video">
+        <source src="doigt.mov" type="video/mp4">
+      </video>
+      <div class="winner-content">
+        <h2 class="text-7xl font-black text-white mb-4 animate-bounce">TU AS ÉTÉ CHOISI !</h2>
+        <p class="text-4xl text-white/90 mb-8 font-bold">${escapeHtml(winnerName)}</p>
+        <div class="text-9xl mb-6 animate-pulse">🎉</div>
+        <button onclick="location.reload()" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform shadow-2xl">
+          Rejouer
+        </button>
+      </div>
     </div>
   `;
 }
