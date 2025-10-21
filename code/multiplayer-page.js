@@ -110,17 +110,24 @@ function connectToServer() {
 
   socket.on('wheel_spinning', (data) => {
     console.log('🎡 La roue tourne!', data);
+    // Désactiver le bouton de lancement pendant l'animation
+    const launchBtn = document.getElementById('launchWheelBtn');
+    if (launchBtn) launchBtn.disabled = true;
     showWheel(data.participants, data.objective);
   });
 
   socket.on('wheel_result', (data) => {
     console.log('🎯 Résultat:', data);
     setTimeout(() => {
+      // Afficher une animation pour tout le monde, avec un texte adapté
       if (data.is_winner) {
         showWinnerScreen(data.winner);
       } else {
         showResultScreen(data.winner);
       }
+      // Réactiver le bouton de lancement côté host
+      const launchBtn = document.getElementById('launchWheelBtn');
+      if (launchBtn) launchBtn.disabled = false;
     }, 5000);
   });
 
@@ -323,6 +330,11 @@ function showWheel(participants, objective) {
   const existingCanvas = document.getElementById('wheelCanvas');
   if (!existingCanvas) {
     wheelContainer.innerHTML = `
+      <div class="absolute top-4 left-4 z-50">
+        <button id="backFromWheelBtn" class="px-4 py-2 rounded-lg bg-white/90 text-gray-800 font-semibold shadow hover:shadow-md transition">
+          ⬅️ Retour
+        </button>
+      </div>
       <div class="text-center">
         <div class="relative mx-auto max-w-[500px] w-full aspect-square">
           <canvas id="wheelCanvas" class="w-full h-full"></canvas>
@@ -331,6 +343,11 @@ function showWheel(participants, objective) {
         <p class="text-white text-2xl font-bold mt-6 animate-pulse">La roue tourne...</p>
       </div>
     `;
+
+    // Bouton retour pour fermer l'animation et pouvoir relancer
+    document.getElementById('backFromWheelBtn')?.addEventListener('click', () => {
+      resetAfterSpin();
+    });
   }
   
   // Lancer l'animation
@@ -443,7 +460,8 @@ function spinWheel(names) {
 function showWinnerScreen(winnerName) {
   // ID Google Drive fourni par l'utilisateur
   const DRIVE_ID = '19NBtyvqr0yCtXFUS6oQCRlDu9eWX_Cfb';
-  const EMBED_URL = `https://drive.google.com/file/d/${DRIVE_ID}/preview`;
+  // Essaye l'autoplay muet pour augmenter les chances d'autoplay sur mobile
+  const EMBED_URL = `https://drive.google.com/file/d/${DRIVE_ID}/preview?autoplay=1&mute=1`;
 
   document.getElementById('wheelContainer').innerHTML = `
     <div class="text-center winner-screen">
@@ -453,7 +471,8 @@ function showWinnerScreen(winnerName) {
           src="${EMBED_URL}"
           width="640"
           height="480"
-          allow="autoplay"
+          allow="autoplay; encrypted-media"
+          allowfullscreen
           loading="eager"
           referrerpolicy="no-referrer"
         ></iframe>
@@ -462,26 +481,64 @@ function showWinnerScreen(winnerName) {
         <h2 class="text-7xl font-black text-white mb-4 animate-bounce">TU AS ÉTÉ CHOISI !</h2>
         <p class="text-4xl text-white/90 mb-8 font-bold">${escapeHtml(winnerName)}</p>
         <div class="text-9xl mb-6 animate-pulse">🎉</div>
-        <button onclick="location.reload()" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform shadow-2xl">
-          Rejouer
-        </button>
+        <div class="flex items-center justify-center gap-3">
+          <button id="replayBtnWin" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform shadow-2xl">
+            Rejouer
+          </button>
+        </div>
       </div>
     </div>
   `;
+
+  document.getElementById('replayBtnWin')?.addEventListener('click', () => {
+    resetAfterSpin();
+  });
 }
 
 // === Écran résultat (pour les perdants) ===
 function showResultScreen(winnerName) {
+  const DRIVE_ID = '19NBtyvqr0yCtXFUS6oQCRlDu9eWX_Cfb';
+  const EMBED_URL = `https://drive.google.com/file/d/${DRIVE_ID}/preview?autoplay=1&mute=1`;
   document.getElementById('wheelContainer').innerHTML = `
-    <div class="text-center">
-      <div class="text-8xl mb-8">🎯</div>
-      <h2 class="text-5xl font-bold text-white mb-4">Le gagnant est</h2>
-      <p class="text-6xl font-black text-yellow-300 mb-8">${escapeHtml(winnerName)}</p>
-      <button onclick="location.reload()" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform">
-        Rejouer
-      </button>
+    <div class="text-center winner-screen">
+      <div class="winner-media">
+        <iframe
+          class="winner-iframe"
+          src="${EMBED_URL}"
+          width="640"
+          height="480"
+          allow="autoplay; encrypted-media"
+          allowfullscreen
+          loading="eager"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+      <div class="winner-content">
+        <h2 class="text-5xl font-bold text-white mb-4">Le gagnant est</h2>
+        <p class="text-6xl font-black text-yellow-300 mb-8">${escapeHtml(winnerName)}</p>
+        <div class="flex items-center justify-center gap-3">
+          <button id="replayBtnLose" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform">
+            Rejouer
+          </button>
+        </div>
+      </div>
     </div>
   `;
+
+  document.getElementById('replayBtnLose')?.addEventListener('click', () => {
+    resetAfterSpin();
+  });
+}
+
+// === Réinitialiser l'affichage après un lancer ===
+function resetAfterSpin() {
+  const wheelContainer = document.getElementById('wheelContainer');
+  // Cacher l'overlay
+  wheelContainer.classList.add('hidden');
+  // Réactiver le bouton de lancement côté host pour rejouer
+  const launchBtn = document.getElementById('launchWheelBtn');
+  if (launchBtn) launchBtn.disabled = false;
+  // Pas de rechargement de page: on garde la session et les participants
 }
 
 // === Theme Toggle ===
