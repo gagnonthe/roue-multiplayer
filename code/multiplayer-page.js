@@ -468,7 +468,7 @@ function showFinalNameOverlay(winnerName) {
     <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900 via-pink-900 to-blue-900">
       <div class="text-center p-6">
         <div class="text-8xl mb-6">🎉</div>
-        <h2 class="text-5xl font-extrabold text-white mb-2">Le gagnant est</h2>
+        <h2 class="text-5xl font-extrabold text-white mb-2">Le perdant est</h2>
         <p class="text-6xl font-black text-yellow-300 mb-8">${escapeHtml(winnerName)}</p>
         <div class="flex items-center justify-center gap-3">
           <button id="replayBtnFinal" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform shadow-2xl">
@@ -484,7 +484,7 @@ function showFinalNameOverlay(winnerName) {
   });
 }
 
-// === Écran gagnant ===
+// === Écran perdant ===
 function showWinnerScreen(winnerName) {
   // ID Google Drive fourni par l'utilisateur
   const DRIVE_ID = '19NBtyvqr0yCtXFUS6oQCRlDu9eWX_Cfb';
@@ -542,7 +542,7 @@ function showResultScreen(winnerName) {
         ></iframe>
       </div>
       <div class="winner-content">
-        <h2 class="text-5xl font-bold text-white mb-4">Le gagnant est</h2>
+        <h2 class="text-5xl font-bold text-white mb-4">Le perdant est</h2>
         <p class="text-6xl font-black text-yellow-300 mb-8">${escapeHtml(winnerName)}</p>
         <div class="flex items-center justify-center gap-3">
           <button id="replayBtnLose" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-bold text-xl hover:scale-105 transition-transform">
